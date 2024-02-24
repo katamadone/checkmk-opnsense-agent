@@ -944,7 +944,7 @@ class checkmk_checker(object):
         result = search_key_in_json(data, "client_id")
 
         if result:
-            print("client_id found!")
+            #print("client_id found!")
 
             # Extracting the client_id from the client list
             client_list = data["server"]["0f7731d9-0222-44f8-be6d-2ae16147650f"]["client_list"]
