@@ -27,7 +27,7 @@
 ##      * smartdisk - install the mkp from https://github.com/bashclub/checkmk-smart plugins os-smart
 ##      * squid     - install the mkp from https://exchange.checkmk.com/p/squid and forwarder -> listen on loopback active
 
-__VERSION__ = "1.0.7"
+__VERSION__ = "1.0.7c"
 
 import sys
 import os
@@ -918,6 +918,51 @@ class checkmk_checker(object):
             else:
                 _ret.append('{status} "OpenVPN Client: {description}" connectiontime=0|connections_ssl_vpn=0|if_in_octets=0|if_out_octets=0|expiredays={expiredays} Nicht verbunden {expiredate}'.format(**_client))
         return _ret
+
+    def checklocal_openvpninstances(self):
+
+        def search_key_in_json(obj, key):
+            if isinstance(obj, dict):
+                if key in obj:
+                    return True
+                for val in obj.values():
+                    if search_key_in_json(val, key):
+                        return True
+            elif isinstance(obj, list):
+                for item in obj:
+                    if search_key_in_json(item, key):
+                        return True
+            return False
+
+        _ret =[]
+        # Run the command and capture its output
+        # /usr/local/opnsense/scripts/openvpn/ovpn_status.py
+        output = subprocess.run(['python3', '/usr/local/opnsense/scripts/openvpn/ovpn_status.py'], capture_output=True, text=True)
+
+        # Parse the output as JSON
+        data = json.loads(output.stdout)
+        result = search_key_in_json(data, "client_id")
+
+        if result:
+            print("client_id found!")
+
+            # Extracting the client_id from the client list
+            client_list = data["server"]["0f7731d9-0222-44f8-be6d-2ae16147650f"]["client_list"]
+            client_ids = [entry["client_id"] for entry in client_list]
+
+            # Count the number of entries
+            num_entries = len(client_ids)
+            # Construct string
+            outvar = (f'0 "OVPN Instances Clients" total_connected_clients={num_entries} Total Clients over all Instances')
+            #print(outvar)
+            _ret.append(outvar)
+            return _ret
+        else:
+            outvar = (f'0 "OVPN Instances Clients" total_connected_clients=0 Total Clients over all Instances')
+            #print(outvar)
+            _ret.append(outvar)
+            return _ret
+        #pass
 
     def checklocal_ipsec(self):
         _ret =[]
